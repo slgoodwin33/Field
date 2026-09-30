@@ -255,6 +255,37 @@
     border:1px solid var(--border); border-radius:6px; padding:0.45rem 0.6rem; flex:1; min-width:140px;
   }
   .txn-form input:focus, .txn-form select:focus{border-color:var(--teal);}
+  .build-tag{font-family:var(--mono); color:var(--text-faint); white-space:nowrap;}
+
+  .project-group-header{
+    display:flex; justify-content:space-between; align-items:baseline; flex-wrap:wrap; gap:0.5rem;
+    margin:1.1rem 0 0.5rem; padding-bottom:0.35rem; border-bottom:1px solid var(--border);
+  }
+  .project-group-header:first-child{margin-top:0;}
+  .project-group-title{font-family:var(--display); font-weight:600; font-size:0.95rem; color:var(--amber);}
+  .project-group-meta{font-family:var(--mono); font-size:0.7rem; color:var(--text-faint); text-transform:uppercase; letter-spacing:0.05em;}
+
+  .credit-card{
+    background:var(--surface); border:1px solid var(--border); border-radius:10px;
+    padding:1rem 1.2rem; margin-bottom:1.2rem;
+  }
+  .credit-top{display:flex; justify-content:space-between; align-items:baseline; flex-wrap:wrap; gap:0.6rem; margin-bottom:0.7rem;}
+  .credit-band{font-family:var(--display); font-weight:700; font-size:1.3rem; color:var(--teal);}
+  .credit-meta{font-family:var(--mono); font-size:0.72rem; color:var(--text-faint);}
+  .factor-grid{display:flex; flex-wrap:wrap; gap:0.4rem;}
+  .factor-chip{
+    font-family:var(--mono); font-size:0.68rem; border:1px solid var(--border); border-radius:6px;
+    padding:0.25rem 0.55rem; color:var(--text-muted); background:var(--surface-2);
+  }
+  .factor-chip.excellent{color:var(--teal); border-color:rgba(95,201,184,0.4);}
+  .factor-chip.needs_work{color:var(--amber); border-color:rgba(232,163,61,0.4);}
+  .factor-chip.poor{color:var(--coral); border-color:rgba(217,96,59,0.4);}
+
+  .budget-cat-bills{margin-top:0.5rem; padding-top:0.5rem; border-top:1px dashed var(--border);}
+  .bill-row{display:flex; justify-content:space-between; font-family:var(--mono); font-size:0.72rem; color:var(--text-faint); padding:0.15rem 0;}
+
+  .reward-row{display:flex; justify-content:space-between; gap:0.6rem; padding:0.2rem 0; font-size:0.85rem;}
+  .reward-row.expired{opacity:0.45; text-decoration:line-through;}
 </style>
 </head>
 <body>
@@ -308,6 +339,7 @@
 
     <div class="tab-panel" id="panelAccounts">
       <div id="accountsErrorBanner"></div>
+      <div id="creditSummary"></div>
       <div id="accountsList"><div class="empty">Loading your accounts…</div></div>
     </div>
 
@@ -342,13 +374,30 @@
   </section>
 </div>
 
-<footer>Todos are read-only here. Account statement/due dates are editable — writes go straight to Supabase.</footer>
+<footer>Todos are read-only here. Account statement/due dates are editable — writes go straight to Supabase. <span id="buildTag" class="build-tag"></span></footer>
 
 <script>
 const SUPABASE_URL = 'https://qqsexwiqhaaimxuswsei.supabase.co';
 const SUPABASE_KEY = 'sb_publishable_sP5r-i7mnqziZGqalP_M2A_XekLpolS';
 const CACHE_KEY = 'todo_ledger_cache_v1';
 const AUTH_KEY = 'todo_ledger_session_v1';
+const BUILD_SEEN_KEY = 'todo_ledger_newest_build_seen_v1';
+const APP_BUILD = '2026-09-30.02';
+
+function checkBuildFreshness(){
+  const tag = document.getElementById('buildTag');
+  if(tag) tag.textContent = `Build ${APP_BUILD}`;
+  try{
+    const lastSeen = localStorage.getItem(BUILD_SEEN_KEY);
+    if(lastSeen && lastSeen > APP_BUILD){
+      // this file is OLDER than a build this browser saw before — the push didn't take
+      if(tag) tag.innerHTML = `Build ${APP_BUILD} <strong style="color:var(--coral)">— outdated, newer build (${lastSeen}) was seen before. Re-upload the latest file.</strong>`;
+    } else {
+      localStorage.setItem(BUILD_SEEN_KEY, APP_BUILD);
+    }
+  } catch(e){ /* storage unavailable, skip the staleness check */ }
+}
+checkBuildFreshness();
 
 let allTodos = [];
 let activeStatus = 'open';
@@ -442,14 +491,14 @@ async function saveCache(data){
 }
 
 async function fetchTodos(){
-  const url = `${SUPABASE_URL}/rest/v1/todos?select=*,project:projects(title,code),asset:assets(item,code)&order=due_date.asc.nullslast`;
+  const url = `${SUPABASE_URL}/rest/v1/todos?select=*,project:projects(title,code,status,target_date),asset:assets(item,code)&order=due_date.asc.nullslast`;
   const res = await fetch(url, { headers: authHeaders() });
   if(!res.ok) throw new Error(`Supabase returned ${res.status}`);
   return res.json();
 }
 
 async function fetchAccounts(){
-  const url = `${SUPABASE_URL}/rest/v1/accounts?select=*&order=code.asc`;
+  const url = `${SUPABASE_URL}/rest/v1/accounts?select=*,rewards:card_rewards(category_name,cashback_rate,spending_cap_cents,period_start,period_end,activated)&order=code.asc`;
   const res = await fetch(url, { headers: authHeaders() });
   if(!res.ok) throw new Error(`Supabase returned ${res.status}`);
   return res.json();
@@ -512,6 +561,17 @@ function renderAccounts(accounts){
           <span class="save-status"></span>
         </div>
         ${a.notes ? `<div class="field-row"><label>Notes</label><span>${a.notes}</span></div>` : ''}
+        ${(a.rewards && a.rewards.length) ? `<div class="field-row" style="display:block;">
+          <label>Reward categories</label>
+          ${a.rewards.map(r=>{
+            const today = new Date().toISOString().slice(0,10);
+            const isExpired = r.period_end && r.period_end < today;
+            return `<div class="reward-row ${isExpired ? 'expired' : ''}">
+              <span>${r.category_name}</span>
+              <span>${r.cashback_rate}% ${r.period_end ? '· thru ' + r.period_end : ''}</span>
+            </div>`;
+          }).join('')}
+        </div>` : ''}
       </div>`;
     }
     return `<div class="account-card ${isExpanded ? 'expanded' : ''}" data-code="${a.code}">
@@ -559,18 +619,63 @@ async function refreshAccounts(){
   }
 }
 
+/* ---------- Credit ---------- */
+
+async function fetchCredit(){
+  const snapRes = await fetch(`${SUPABASE_URL}/rest/v1/credit_snapshots?select=*&order=captured_on.desc&limit=1`, { headers: authHeaders() });
+  if(!snapRes.ok) throw new Error(`Supabase returned ${snapRes.status}`);
+  const snaps = await snapRes.json();
+  if(!snaps.length) return null;
+  const factorsRes = await fetch(`${SUPABASE_URL}/rest/v1/credit_factors?select=factor,rating,impact&snapshot_id=eq.${snaps[0].id}`, { headers: authHeaders() });
+  if(!factorsRes.ok) throw new Error(`Supabase returned ${factorsRes.status}`);
+  const factors = await factorsRes.json();
+  return { snapshot: snaps[0], factors };
+}
+
+function renderCredit(data){
+  const el = document.getElementById('creditSummary');
+  if(!data){ el.innerHTML = ''; return; }
+  const s = data.snapshot;
+  el.innerHTML = `<div class="credit-card">
+    <div class="credit-top">
+      <span class="credit-band">${s.score_band}${s.score_value ? ' · ' + s.score_value : ''}</span>
+      <span class="credit-meta">${s.source} · ${s.captured_on}</span>
+    </div>
+    <div class="factor-grid">
+      ${data.factors.map(f=>`<span class="factor-chip ${(f.rating||'').toLowerCase()}">${(f.factor||'').replace(/_/g,' ').toLowerCase()} · ${(f.rating||'').replace(/_/g,' ').toLowerCase()}</span>`).join('')}
+    </div>
+  </div>`;
+}
+
+async function refreshCredit(){
+  try{
+    renderCredit(await fetchCredit());
+  } catch(err){
+    // non-critical section — fail quietly rather than blocking the accounts tab
+  }
+}
+
 /* ---------- Budget ---------- */
 
 async function fetchBudget(){
   const summaryRes = await fetch(`${SUPABASE_URL}/rest/v1/v_weekly_summary?select=*&order=week_start.desc&limit=1`, { headers: authHeaders() });
   if(!summaryRes.ok) throw new Error(`Supabase returned ${summaryRes.status}`);
   const summary = await summaryRes.json();
-  if(!summary.length) return { summary: null, categories: [] };
+  if(!summary.length) return { summary: null, categories: [], bills: [], income: [] };
   const periodCode = summary[0].period_code;
   const catRes = await fetch(`${SUPABASE_URL}/rest/v1/v_weekly_budget?select=*&period_code=eq.${encodeURIComponent(periodCode)}&order=category_code.asc`, { headers: authHeaders() });
   if(!catRes.ok) throw new Error(`Supabase returned ${catRes.status}`);
   const categories = await catRes.json();
-  return { summary: summary[0], categories };
+
+  const billsRes = await fetch(`${SUPABASE_URL}/rest/v1/recurring_bills?select=code,name,amount_cents,frequency,due_day,autopay,category:transaction_categories(code)&active=eq.true&order=name.asc`, { headers: authHeaders() });
+  if(!billsRes.ok) throw new Error(`Supabase returned ${billsRes.status}`);
+  const bills = await billsRes.json();
+
+  const incomeRes = await fetch(`${SUPABASE_URL}/rest/v1/income_sources?select=code,name,source_type,net_amount_cents,frequency&active=eq.true&order=name.asc`, { headers: authHeaders() });
+  if(!incomeRes.ok) throw new Error(`Supabase returned ${incomeRes.status}`);
+  const income = await incomeRes.json();
+
+  return { summary: summary[0], categories, bills, income };
 }
 
 function renderBudget(data){
@@ -583,20 +688,41 @@ function renderBudget(data){
       <div class="readout"><div class="label">Planned</div><div class="value">${formatCents(s.planned_cents)}</div></div>
       <div class="readout accent"><div class="label">Spent</div><div class="value">${formatCents(s.spent_cents)}</div></div>
       <div class="readout warn"><div class="label">Remaining</div><div class="value">${formatCents(s.remaining_cents)}</div></div>
-    </div>
-    <div class="health-section-label">By category</div>`;
+    </div>`;
+
+  if(data.income && data.income.length){
+    html += `<div class="health-section-label">Income sources</div>`;
+    html += data.income.map(i=>`<div class="field-row" style="margin-bottom:0.3rem;">
+      <label style="min-width:170px;">${i.name}</label>
+      <span>${formatCents(i.net_amount_cents)} · ${i.frequency}</span>
+    </div>`).join('');
+  }
+
+  html += `<div class="health-section-label">By category</div>`;
   html += data.categories.map(c=>{
     const pct = Math.min(100, Math.max(0, parseFloat(c.pct_used) || 0));
     const isSavings = c.category_type === 'savings';
     const barClass = isSavings ? '' : (pct >= 100 ? 'over' : (pct >= 80 ? 'warn' : ''));
+    const relatedBills = (data.bills || []).filter(b => b.category && b.category.code === c.category_code);
+    const billsHtml = relatedBills.length ? `<div class="budget-cat-bills">${relatedBills.map(b=>`
+      <div class="bill-row"><span>${b.name}${b.autopay ? ' (autopay)' : ''}</span><span>${formatCents(b.amount_cents)}/${b.frequency}</span></div>
+    `).join('')}</div>` : '';
     return `<div class="budget-cat ${isSavings ? 'savings' : ''}">
       <div class="budget-cat-top">
         <span class="budget-cat-name">${c.category}</span>
         <span class="budget-cat-amounts">${formatCents(c.spent_cents)} / ${formatCents(c.planned_cents)}</span>
       </div>
       <div class="budget-bar-track"><div class="budget-bar-fill ${barClass}" style="width:${pct}%"></div></div>
+      ${billsHtml}
     </div>`;
   }).join('');
+
+  const unmatchedBills = (data.bills || []).filter(b => !b.category || !data.categories.some(c=>c.category_code === b.category.code));
+  if(unmatchedBills.length){
+    html += `<div class="health-section-label">Other recurring bills</div>`;
+    html += unmatchedBills.map(b=>`<div class="bill-row"><span>${b.name}${b.autopay ? ' (autopay)' : ''}</span><span>${formatCents(b.amount_cents)}/${b.frequency}</span></div>`).join('');
+  }
+
   el.innerHTML = html;
 }
 
@@ -723,7 +849,7 @@ function formatMoney(val){
 }
 
 async function fetchAssets(){
-  const url = `${SUPABASE_URL}/rest/v1/assets?select=code,item,category,sub_category,brand,model,condition,color,estimated_value,purchase_price,status,owner,notes,location:locations(name)&order=category.asc,item.asc`;
+  const url = `${SUPABASE_URL}/rest/v1/assets?select=code,item,category,sub_category,brand,model,condition,color,estimated_value,purchase_price,status,owner,notes,location:locations(name),maintenance:vehicle_maintenance(service_type,service_date,odometer,cost,shop,next_due_date)&order=category.asc,item.asc`;
   const res = await fetch(url, { headers: authHeaders() });
   if(!res.ok) throw new Error(`Supabase returned ${res.status}`);
   return res.json();
@@ -764,6 +890,14 @@ function renderAssets(assets){
         <div class="field-row"><label>Owner</label><span>${a.owner || '—'}</span></div>
         <div class="field-row"><label>Location</label><span>${(a.location && a.location.name) || 'Unknown'}</span></div>
         ${a.notes ? `<div class="field-row"><label>Notes</label><span>${a.notes}</span></div>` : ''}
+        ${a.category === 'Vehicle' ? (
+          a.maintenance && a.maintenance.length
+            ? `<div class="field-row" style="display:block;"><label>Maintenance history</label>${a.maintenance
+                .slice().sort((x,y)=> (y.service_date||'') < (x.service_date||'') ? -1 : 1)
+                .map(m=>`<div class="bill-row"><span>${m.service_date || '—'} · ${m.service_type || 'Service'}${m.shop ? ' (' + m.shop + ')' : ''}</span><span>${m.cost!=null ? formatMoney(m.cost) : '—'}</span></div>`)
+                .join('')}</div>`
+            : `<div class="field-row"><label>Maintenance history</label><span>None logged yet</span></div>`
+        ) : ''}
       </div>`;
     }
     return `<div class="asset-card ${isExpanded ? 'expanded' : ''}" data-code="${a.code}">
@@ -937,18 +1071,45 @@ function renderFilters(todos){
 function renderList(todos){
   const today = new Date().toISOString().slice(0,10);
   let rows = activeStatus==='all' ? todos.slice() : todos.filter(t=>t.status===activeStatus);
-  rows.sort((a,b)=>{
+
+  const sortFn = (a,b)=>{
     const s = STATUS_ORDER[a.status]-STATUS_ORDER[b.status];
     if(s!==0) return s;
     const p = (PRIORITY_ORDER[a.priority||'null']) - (PRIORITY_ORDER[b.priority||'null']);
     if(p!==0) return p;
     return (a.due_date||'9999') < (b.due_date||'9999') ? -1 : 1;
-  });
+  };
 
   const list = document.getElementById('todoList');
   if(rows.length===0){ list.innerHTML = '<div class="empty">Nothing here.</div>'; return; }
 
-  list.innerHTML = rows.map(t=>{
+  const groups = {};
+  const groupOrder = [];
+  rows.forEach(t=>{
+    const key = (t.project && t.project.code) ? t.project.code : '__none__';
+    if(!groups[key]){ groups[key] = []; groupOrder.push(key); }
+    groups[key].push(t);
+  });
+  groupOrder.sort((a,b)=>{
+    if(a==='__none__') return 1;
+    if(b==='__none__') return -1;
+    return a.localeCompare(b);
+  });
+  groupOrder.forEach(k=>groups[k].sort(sortFn));
+
+  list.innerHTML = groupOrder.map(key=>{
+    const groupRows = groups[key];
+    let headerHtml = '';
+    if(key !== '__none__'){
+      const proj = groupRows[0].project;
+      const metaParts = [proj.status];
+      if(proj.target_date) metaParts.push('target ' + proj.target_date);
+      headerHtml = `<div class="project-group-header">
+        <span class="project-group-title">${proj.title}</span>
+        <span class="project-group-meta">${metaParts.join(' · ')}</span>
+      </div>`;
+    }
+    return headerHtml + groupRows.map(t=>{
     const isOverdue = t.status==='open' && t.due_date && t.due_date < today;
     const parts = [];
     if(t.priority) parts.push(`<span class="tag priority-${t.priority}">${t.priority}</span>`);
@@ -981,6 +1142,7 @@ function renderList(todos){
       </div>
       <div class="todo-code">${t.code}</div>
     </div>`;
+    }).join('');
   }).join('');
 
   list.querySelectorAll('.todo-card').forEach(card=>{
@@ -1044,6 +1206,7 @@ async function bootApp(){
   }
   await refresh(false);
   await refreshAccounts();
+  await refreshCredit();
   try{ allCategories = await fetchCategories(); } catch(e){ /* form will just show no categories */ }
   await refreshBudget();
   await refreshAssets();
