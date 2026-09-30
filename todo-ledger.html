@@ -181,6 +181,80 @@
     font-family:var(--mono); font-size:0.74rem; color:var(--text-faint); background:none; border:none;
     cursor:pointer; text-decoration:underline; padding:0;
   }
+
+  .stale-note{
+    font-family:var(--mono); font-size:0.72rem; color:var(--text-faint);
+    background:var(--surface-2); border:1px solid var(--border); border-radius:8px;
+    padding:0.6rem 0.9rem; margin-bottom:1.2rem;
+  }
+
+  .budget-period{font-family:var(--mono); font-size:0.78rem; color:var(--text-muted); margin-bottom:1rem;}
+  .budget-cat{
+    background:var(--surface); border:1px solid var(--border); border-radius:10px;
+    padding:0.9rem 1.1rem; margin-bottom:0.55rem;
+  }
+  .budget-cat-top{display:flex; justify-content:space-between; align-items:baseline; gap:0.7rem; margin-bottom:0.5rem;}
+  .budget-cat-name{font-weight:500; font-size:0.92rem;}
+  .budget-cat-amounts{font-family:var(--mono); font-size:0.76rem; color:var(--text-faint); white-space:nowrap;}
+  .budget-bar-track{height:6px; border-radius:4px; background:var(--surface-2); overflow:hidden;}
+  .budget-bar-fill{height:100%; border-radius:4px; background:var(--teal); transition:width 0.3s;}
+  .budget-bar-fill.warn{background:var(--amber);}
+  .budget-bar-fill.over{background:var(--coral);}
+  .budget-cat.savings .budget-bar-fill{background:var(--blue);}
+
+  .asset-card{
+    background:var(--surface); border:1px solid var(--border); border-radius:10px;
+    padding:0.9rem 1.1rem; margin-bottom:0.55rem; cursor:pointer; transition:border-color 0.15s;
+  }
+  .asset-card:hover{border-color:var(--text-faint);}
+  .asset-card.expanded{border-color:var(--teal);}
+  .asset-top{display:flex; justify-content:space-between; align-items:baseline; gap:0.7rem; flex-wrap:wrap;}
+  .asset-name{font-weight:500; font-size:0.95rem;}
+  .asset-cat{font-family:var(--mono); font-size:0.72rem; color:var(--text-faint);}
+  .asset-value{font-family:var(--mono); font-size:0.88rem; color:var(--text-muted); font-variant-numeric:tabular-nums;}
+  .asset-detail{
+    margin-top:0.7rem; padding-top:0.7rem; border-top:1px solid var(--border);
+    display:grid; gap:0.4rem; font-size:0.86rem; color:var(--text-muted);
+  }
+  .asset-detail .field-row label{min-width:90px;}
+
+  .health-stats{
+    display:grid; grid-template-columns:repeat(auto-fit, minmax(120px, 1fr)); gap:1px;
+    background:var(--border); border:1px solid var(--border); border-radius:10px; overflow:hidden;
+    margin-bottom:1.2rem;
+  }
+  .health-stat{background:var(--surface); padding:0.9rem 1rem;}
+  .health-stat .label{font-family:var(--mono); font-size:0.64rem; text-transform:uppercase; letter-spacing:0.07em; color:var(--text-faint); margin-bottom:0.35rem;}
+  .health-stat .value{font-family:var(--mono); font-weight:600; font-size:1.15rem; font-variant-numeric:tabular-nums;}
+  .steps-chart{width:100%; height:110px; margin-bottom:1.4rem;}
+  .steps-chart rect{fill:var(--teal);}
+  .steps-chart text{fill:var(--text-faint); font-family:var(--mono); font-size:9px;}
+  .health-section-label{font-family:var(--mono); font-size:0.72rem; text-transform:uppercase; letter-spacing:0.07em; color:var(--text-faint); margin:1.4rem 0 0.6rem;}
+  .workout-card{
+    background:var(--surface); border:1px solid var(--border); border-radius:10px;
+    padding:0.85rem 1.1rem; margin-bottom:0.5rem; cursor:pointer;
+  }
+  .workout-card:hover{border-color:var(--text-faint);}
+  .workout-card.expanded{border-color:var(--teal);}
+  .workout-top{display:flex; justify-content:space-between; align-items:baseline; gap:0.7rem; flex-wrap:wrap;}
+  .workout-type{font-weight:500; font-size:0.92rem; text-transform:capitalize;}
+  .workout-date{font-family:var(--mono); font-size:0.72rem; color:var(--text-faint);}
+  .workout-detail{
+    margin-top:0.6rem; padding-top:0.6rem; border-top:1px solid var(--border);
+    display:grid; gap:0.35rem; font-size:0.85rem; color:var(--text-muted);
+  }
+
+  .asset-filters-wrap{margin-bottom:1rem;}
+
+  .txn-form{
+    background:var(--surface); border:1px solid var(--border); border-radius:10px;
+    padding:1rem 1.1rem; margin-bottom:1.2rem; display:flex; flex-direction:column; gap:0.7rem;
+  }
+  .txn-form input, .txn-form select{
+    font-family:var(--sans); font-size:0.9rem; background:var(--surface-2); color:var(--text);
+    border:1px solid var(--border); border-radius:6px; padding:0.45rem 0.6rem; flex:1; min-width:140px;
+  }
+  .txn-form input:focus, .txn-form select:focus{border-color:var(--teal);}
 </style>
 </head>
 <body>
@@ -217,9 +291,12 @@
     </div>
   </header>
 
-  <div class="tabbar">
-    <button class="tab-btn active" id="tabBtnTodos" type="button">Todos</button>
-    <button class="tab-btn" id="tabBtnAccounts" type="button">Accounts</button>
+  <div class="tabbar" id="tabbar">
+    <button class="tab-btn active" data-panel="panelTodos" type="button">Todos</button>
+    <button class="tab-btn" data-panel="panelAccounts" type="button">Accounts</button>
+    <button class="tab-btn" data-panel="panelBudget" type="button">Budget</button>
+    <button class="tab-btn" data-panel="panelAssets" type="button">Assets</button>
+    <button class="tab-btn" data-panel="panelHealth" type="button">Health</button>
   </div>
 
   <section>
@@ -232,6 +309,35 @@
     <div class="tab-panel" id="panelAccounts">
       <div id="accountsErrorBanner"></div>
       <div id="accountsList"><div class="empty">Loading your accounts…</div></div>
+    </div>
+
+    <div class="tab-panel" id="panelBudget">
+      <div id="budgetErrorBanner"></div>
+      <button class="refresh-btn" id="addTxnBtn" type="button" style="margin-bottom:1rem;">+ Log transaction</button>
+      <form id="txnForm" class="txn-form" style="display:none;">
+        <div class="field-row"><label>Date</label><input type="date" id="txnDate" required></div>
+        <div class="field-row"><label>Account</label><select id="txnAccount" required></select></div>
+        <div class="field-row"><label>Category</label><select id="txnCategory" required></select></div>
+        <div class="field-row"><label>Amount</label><input type="number" id="txnAmount" step="0.01" min="0.01" placeholder="0.00" required></div>
+        <div class="field-row"><label>Merchant</label><input type="text" id="txnMerchant" placeholder="optional"></div>
+        <div class="field-row">
+          <button class="save-btn" id="txnSaveBtn" type="submit">Save</button>
+          <button class="sign-out-link" id="txnCancelBtn" type="button">Cancel</button>
+          <span class="save-status" id="txnStatus"></span>
+        </div>
+      </form>
+      <div id="budgetContent"><div class="empty">Loading your budget…</div></div>
+    </div>
+
+    <div class="tab-panel" id="panelAssets">
+      <div id="assetsErrorBanner"></div>
+      <div class="controls" id="assetFilters"></div>
+      <div id="assetsList"><div class="empty">Loading your assets…</div></div>
+    </div>
+
+    <div class="tab-panel" id="panelHealth">
+      <div id="healthErrorBanner"></div>
+      <div id="healthContent"><div class="empty">Loading your activity…</div></div>
     </div>
   </section>
 </div>
@@ -453,6 +559,354 @@ async function refreshAccounts(){
   }
 }
 
+/* ---------- Budget ---------- */
+
+async function fetchBudget(){
+  const summaryRes = await fetch(`${SUPABASE_URL}/rest/v1/v_weekly_summary?select=*&order=week_start.desc&limit=1`, { headers: authHeaders() });
+  if(!summaryRes.ok) throw new Error(`Supabase returned ${summaryRes.status}`);
+  const summary = await summaryRes.json();
+  if(!summary.length) return { summary: null, categories: [] };
+  const periodCode = summary[0].period_code;
+  const catRes = await fetch(`${SUPABASE_URL}/rest/v1/v_weekly_budget?select=*&period_code=eq.${encodeURIComponent(periodCode)}&order=category_code.asc`, { headers: authHeaders() });
+  if(!catRes.ok) throw new Error(`Supabase returned ${catRes.status}`);
+  const categories = await catRes.json();
+  return { summary: summary[0], categories };
+}
+
+function renderBudget(data){
+  const el = document.getElementById('budgetContent');
+  if(!data.summary){ el.innerHTML = '<div class="empty">No budget period set up yet.</div>'; return; }
+  const s = data.summary;
+  let html = `<div class="budget-period">${s.week_start} – ${s.week_end} · ${s.status}</div>
+    <div class="readouts">
+      <div class="readout"><div class="label">Income</div><div class="value">${formatCents(s.expected_income_cents)}</div></div>
+      <div class="readout"><div class="label">Planned</div><div class="value">${formatCents(s.planned_cents)}</div></div>
+      <div class="readout accent"><div class="label">Spent</div><div class="value">${formatCents(s.spent_cents)}</div></div>
+      <div class="readout warn"><div class="label">Remaining</div><div class="value">${formatCents(s.remaining_cents)}</div></div>
+    </div>
+    <div class="health-section-label">By category</div>`;
+  html += data.categories.map(c=>{
+    const pct = Math.min(100, Math.max(0, parseFloat(c.pct_used) || 0));
+    const isSavings = c.category_type === 'savings';
+    const barClass = isSavings ? '' : (pct >= 100 ? 'over' : (pct >= 80 ? 'warn' : ''));
+    return `<div class="budget-cat ${isSavings ? 'savings' : ''}">
+      <div class="budget-cat-top">
+        <span class="budget-cat-name">${c.category}</span>
+        <span class="budget-cat-amounts">${formatCents(c.spent_cents)} / ${formatCents(c.planned_cents)}</span>
+      </div>
+      <div class="budget-bar-track"><div class="budget-bar-fill ${barClass}" style="width:${pct}%"></div></div>
+    </div>`;
+  }).join('');
+  el.innerHTML = html;
+}
+
+async function refreshBudget(){
+  const banner = document.getElementById('budgetErrorBanner');
+  banner.innerHTML = '';
+  try{
+    renderBudget(await fetchBudget());
+  } catch(err){
+    banner.innerHTML = `<div class="error-banner">Couldn't reach Supabase (${err.message}).</div>`;
+  }
+}
+
+/* ---------- Transaction entry ---------- */
+
+let allCategories = [];
+
+async function fetchCategories(){
+  const res = await fetch(`${SUPABASE_URL}/rest/v1/transaction_categories?select=id,code,name,category_type&order=sort_order.asc`, { headers: authHeaders() });
+  if(!res.ok) throw new Error(`Supabase returned ${res.status}`);
+  return res.json();
+}
+
+function populateTxnFormOptions(){
+  const accSel = document.getElementById('txnAccount');
+  accSel.innerHTML = allAccounts.map(a=>`<option value="${a.code}">${a.name}</option>`).join('');
+  const catSel = document.getElementById('txnCategory');
+  catSel.innerHTML = allCategories.map(c=>`<option value="${c.code}" data-type="${c.category_type}">${c.name}</option>`).join('');
+}
+
+async function nextTransactionCode(){
+  const res = await fetch(`${SUPABASE_URL}/rest/v1/transactions?select=code&order=code.desc&limit=1`, { headers: authHeaders() });
+  if(!res.ok) throw new Error(`Supabase returned ${res.status}`);
+  const rows = await res.json();
+  if(!rows.length) return 'TX-00001';
+  const n = parseInt(rows[0].code.split('-')[1], 10) + 1;
+  return 'TX-' + String(n).padStart(5, '0');
+}
+
+async function insertTransaction({ date, accountCode, categoryCode, categoryType, amountDollars, merchant }){
+  const account = allAccounts.find(a=>a.code===accountCode);
+  const category = allCategories.find(c=>c.code===categoryCode);
+  const code = await nextTransactionCode();
+  const cents = Math.round(amountDollars * 100);
+  const signedCents = categoryType === 'income' ? cents : -cents;
+  const res = await fetch(`${SUPABASE_URL}/rest/v1/transactions`, {
+    method: 'POST',
+    headers: authHeaders({ 'Content-Type': 'application/json', Prefer: 'return=representation' }),
+    body: JSON.stringify([{
+      code,
+      account_id: account.id,
+      category_id: category.id,
+      transaction_date: date,
+      amount_cents: signedCents,
+      merchant: merchant || null,
+      description: merchant || null
+    }])
+  });
+  if(!res.ok){
+    const errBody = await res.json().catch(()=>({}));
+    throw new Error(errBody.message || `Supabase returned ${res.status}`);
+  }
+  return res.json();
+}
+
+document.getElementById('addTxnBtn').addEventListener('click', ()=>{
+  populateTxnFormOptions();
+  document.getElementById('txnDate').value = new Date().toISOString().slice(0,10);
+  document.getElementById('txnForm').style.display = 'flex';
+  document.getElementById('addTxnBtn').style.display = 'none';
+});
+document.getElementById('txnCancelBtn').addEventListener('click', ()=>{
+  document.getElementById('txnForm').style.display = 'none';
+  document.getElementById('addTxnBtn').style.display = '';
+  document.getElementById('txnForm').reset();
+  document.getElementById('txnStatus').textContent = '';
+});
+document.getElementById('txnForm').addEventListener('submit', async (e)=>{
+  e.preventDefault();
+  const saveBtn = document.getElementById('txnSaveBtn');
+  const status = document.getElementById('txnStatus');
+  const catSel = document.getElementById('txnCategory');
+  const categoryType = catSel.selectedOptions[0] ? catSel.selectedOptions[0].getAttribute('data-type') : 'expense';
+  saveBtn.disabled = true;
+  status.textContent = 'Saving…';
+  status.className = 'save-status';
+  try{
+    await insertTransaction({
+      date: document.getElementById('txnDate').value,
+      accountCode: document.getElementById('txnAccount').value,
+      categoryCode: catSel.value,
+      categoryType,
+      amountDollars: parseFloat(document.getElementById('txnAmount').value),
+      merchant: document.getElementById('txnMerchant').value.trim()
+    });
+    status.textContent = 'Logged ✓';
+    status.className = 'save-status ok';
+    document.getElementById('txnForm').reset();
+    setTimeout(()=>{
+      document.getElementById('txnForm').style.display = 'none';
+      document.getElementById('addTxnBtn').style.display = '';
+      status.textContent = '';
+    }, 900);
+    await refreshBudget();
+  } catch(err){
+    status.textContent = `Couldn't save (${err.message})`;
+    status.className = 'save-status err';
+  } finally {
+    saveBtn.disabled = false;
+  }
+});
+
+/* ---------- Assets ---------- */
+
+let allAssets = [];
+let expandedAssetCode = null;
+let activeAssetCategory = 'all';
+
+function formatMoney(val){
+  if(val === null || val === undefined) return '—';
+  const num = typeof val === 'string' ? parseFloat(val) : val;
+  if(isNaN(num)) return '—';
+  return '$' + num.toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 0 });
+}
+
+async function fetchAssets(){
+  const url = `${SUPABASE_URL}/rest/v1/assets?select=code,item,category,sub_category,brand,model,condition,color,estimated_value,purchase_price,status,owner,notes,location:locations(name)&order=category.asc,item.asc`;
+  const res = await fetch(url, { headers: authHeaders() });
+  if(!res.ok) throw new Error(`Supabase returned ${res.status}`);
+  return res.json();
+}
+
+function renderAssetFilters(assets){
+  const cats = Array.from(new Set(assets.map(a=>a.category).filter(Boolean))).sort();
+  const wrap = document.getElementById('assetFilters');
+  const chips = ['all', ...cats];
+  wrap.innerHTML = chips.map(c=>{
+    const active = activeAssetCategory === c ? 'active' : '';
+    return `<button class="chip ${active}" data-cat="${c}" type="button">${c === 'all' ? 'All' : c}</button>`;
+  }).join('');
+  wrap.querySelectorAll('.chip').forEach(btn=>{
+    btn.addEventListener('click', ()=>{
+      activeAssetCategory = btn.getAttribute('data-cat');
+      renderAssetFilters(assets);
+      renderAssets(assets);
+    });
+  });
+}
+
+function renderAssets(assets){
+  const list = document.getElementById('assetsList');
+  const filtered = activeAssetCategory === 'all' ? assets : assets.filter(a=>a.category===activeAssetCategory);
+  if(!filtered.length){ list.innerHTML = '<div class="empty">No assets in this category.</div>'; return; }
+  list.innerHTML = filtered.map(a=>{
+    const isExpanded = expandedAssetCode === a.code;
+    const value = a.estimated_value ?? a.purchase_price;
+    let detailHtml = '';
+    if(isExpanded){
+      detailHtml = `<div class="asset-detail">
+        ${a.brand ? `<div class="field-row"><label>Brand</label><span>${a.brand}</span></div>` : ''}
+        ${a.model ? `<div class="field-row"><label>Model</label><span>${a.model}</span></div>` : ''}
+        ${a.condition ? `<div class="field-row"><label>Condition</label><span>${a.condition}</span></div>` : ''}
+        ${a.color ? `<div class="field-row"><label>Color</label><span>${a.color}</span></div>` : ''}
+        <div class="field-row"><label>Status</label><span>${a.status || '—'}</span></div>
+        <div class="field-row"><label>Owner</label><span>${a.owner || '—'}</span></div>
+        <div class="field-row"><label>Location</label><span>${(a.location && a.location.name) || 'Unknown'}</span></div>
+        ${a.notes ? `<div class="field-row"><label>Notes</label><span>${a.notes}</span></div>` : ''}
+      </div>`;
+    }
+    return `<div class="asset-card ${isExpanded ? 'expanded' : ''}" data-code="${a.code}">
+      <div class="asset-top">
+        <div>
+          <div class="asset-name">${a.item}</div>
+          <div class="asset-cat">${a.category}${a.sub_category ? ' · ' + a.sub_category : ''}</div>
+        </div>
+        <div class="asset-value">${formatMoney(value)}</div>
+      </div>
+      ${detailHtml}
+    </div>`;
+  }).join('');
+
+  list.querySelectorAll('.asset-card').forEach(card=>{
+    card.addEventListener('click', ()=>{
+      const code = card.getAttribute('data-code');
+      expandedAssetCode = (expandedAssetCode === code) ? null : code;
+      renderAssets(assets);
+    });
+  });
+}
+
+async function refreshAssets(){
+  const banner = document.getElementById('assetsErrorBanner');
+  banner.innerHTML = '';
+  try{
+    const assets = await fetchAssets();
+    allAssets = assets;
+    renderAssetFilters(assets);
+    renderAssets(assets);
+  } catch(err){
+    banner.innerHTML = `<div class="error-banner">Couldn't reach Supabase (${err.message}).</div>`;
+  }
+}
+
+/* ---------- Health ---------- */
+
+let expandedWorkoutIndex = null;
+
+async function fetchHealth(){
+  const dailyRes = await fetch(`${SUPABASE_URL}/rest/v1/daily_activity?select=activity_date,steps,active_energy_kcal,distance_walking_running_qty,distance_unit&order=activity_date.desc&limit=30`, { headers: authHeaders() });
+  if(!dailyRes.ok) throw new Error(`Supabase returned ${dailyRes.status}`);
+  const daily = await dailyRes.json();
+
+  const workoutsRes = await fetch(`${SUPABASE_URL}/rest/v1/workouts?select=activity_type,start_time,duration_seconds,active_energy_kcal,distance_qty,distance_unit,avg_heart_rate&order=start_time.desc&limit=10`, { headers: authHeaders() });
+  if(!workoutsRes.ok) throw new Error(`Supabase returned ${workoutsRes.status}`);
+  const workouts = await workoutsRes.json();
+
+  return { daily, workouts };
+}
+
+function buildStepsChart(daily){
+  if(!daily.length) return '';
+  const chronological = [...daily].reverse();
+  const max = Math.max(...chronological.map(d=>d.steps || 0), 1);
+  const w = 600, h = 100;
+  const barWidth = Math.max(1, (w / chronological.length) - 2);
+  const bars = chronological.map((d,i)=>{
+    const barH = Math.max(2, (d.steps||0)/max * (h-14));
+    const x = i * (w/chronological.length);
+    const y = h - barH - 14;
+    return `<rect x="${x.toFixed(1)}" y="${y.toFixed(1)}" width="${barWidth.toFixed(1)}" height="${barH.toFixed(1)}" rx="1"></rect>`;
+  }).join('');
+  const firstLabel = chronological[0].activity_date;
+  const lastLabel = chronological[chronological.length-1].activity_date;
+  return `<svg class="steps-chart" viewBox="0 0 ${w} ${h}" preserveAspectRatio="none">
+    ${bars}
+    <text x="0" y="${h-2}">${firstLabel}</text>
+    <text x="${w}" y="${h-2}" text-anchor="end">${lastLabel}</text>
+  </svg>`;
+}
+
+function renderHealth(data){
+  const el = document.getElementById('healthContent');
+  const { daily, workouts } = data;
+  if(!daily.length && !workouts.length){ el.innerHTML = '<div class="empty">No activity data yet.</div>'; return; }
+
+  const avgSteps = daily.length ? Math.round(daily.reduce((sum,d)=>sum+(d.steps||0),0) / daily.length) : 0;
+  const totalDistance = daily.reduce((sum,d)=>sum+(parseFloat(d.distance_walking_running_qty)||0),0);
+  const totalEnergy = daily.reduce((sum,d)=>sum+(parseFloat(d.active_energy_kcal)||0),0);
+  const mostRecent = daily[0] ? daily[0].activity_date : null;
+  const distUnit = (daily[0] && daily[0].distance_unit) || 'mi';
+
+  let html = '';
+  if(mostRecent){
+    html += `<div class="stale-note">Last recorded activity: ${mostRecent} — this reflects your last Apple Health import, not a live feed.</div>`;
+  }
+  html += `<div class="health-stats">
+    <div class="health-stat"><div class="label">Avg steps/day</div><div class="value">${avgSteps.toLocaleString()}</div></div>
+    <div class="health-stat"><div class="label">Distance (${distUnit})</div><div class="value">${totalDistance.toFixed(1)}</div></div>
+    <div class="health-stat"><div class="label">Active kcal</div><div class="value">${Math.round(totalEnergy).toLocaleString()}</div></div>
+    <div class="health-stat"><div class="label">Days shown</div><div class="value">${daily.length}</div></div>
+  </div>`;
+  html += buildStepsChart(daily);
+
+  html += `<div class="health-section-label">Recent workouts</div>`;
+  if(!workouts.length){
+    html += '<div class="empty">No workouts logged.</div>';
+  } else {
+    html += workouts.map((w,i)=>{
+      const isExpanded = expandedWorkoutIndex === i;
+      const dateStr = new Date(w.start_time).toLocaleDateString();
+      const minutes = Math.round((parseFloat(w.duration_seconds)||0)/60);
+      let detail = '';
+      if(isExpanded){
+        detail = `<div class="workout-detail">
+          <div class="field-row"><label>Duration</label><span>${minutes} min</span></div>
+          ${w.active_energy_kcal ? `<div class="field-row"><label>Active kcal</label><span>${Math.round(w.active_energy_kcal)}</span></div>` : ''}
+          ${w.distance_qty ? `<div class="field-row"><label>Distance</label><span>${parseFloat(w.distance_qty).toFixed(2)} ${w.distance_unit||''}</span></div>` : ''}
+          ${w.avg_heart_rate ? `<div class="field-row"><label>Avg heart rate</label><span>${Math.round(w.avg_heart_rate)} bpm</span></div>` : ''}
+        </div>`;
+      }
+      return `<div class="workout-card ${isExpanded?'expanded':''}" data-idx="${i}">
+        <div class="workout-top">
+          <span class="workout-type">${(w.activity_type||'').replace(/_/g,' ')}</span>
+          <span class="workout-date">${dateStr} · ${minutes} min</span>
+        </div>
+        ${detail}
+      </div>`;
+    }).join('');
+  }
+
+  el.innerHTML = html;
+  el.querySelectorAll('.workout-card').forEach(card=>{
+    card.addEventListener('click', ()=>{
+      const idx = parseInt(card.getAttribute('data-idx'), 10);
+      expandedWorkoutIndex = (expandedWorkoutIndex === idx) ? null : idx;
+      renderHealth(data);
+    });
+  });
+}
+
+async function refreshHealth(){
+  const banner = document.getElementById('healthErrorBanner');
+  banner.innerHTML = '';
+  try{
+    renderHealth(await fetchHealth());
+  } catch(err){
+    banner.innerHTML = `<div class="error-banner">Couldn't reach Supabase (${err.message}).</div>`;
+  }
+}
+
 function renderReadouts(todos){
   const open = todos.filter(t=>t.status==='open');
   const highOpen = open.filter(t=>t.priority==='high');
@@ -572,17 +1026,13 @@ async function refresh(showSpinner){
 
 document.getElementById('refreshBtn').addEventListener('click', ()=> refresh(true));
 
-document.getElementById('tabBtnTodos').addEventListener('click', ()=>{
-  document.getElementById('tabBtnTodos').classList.add('active');
-  document.getElementById('tabBtnAccounts').classList.remove('active');
-  document.getElementById('panelTodos').classList.add('active');
-  document.getElementById('panelAccounts').classList.remove('active');
-});
-document.getElementById('tabBtnAccounts').addEventListener('click', ()=>{
-  document.getElementById('tabBtnAccounts').classList.add('active');
-  document.getElementById('tabBtnTodos').classList.remove('active');
-  document.getElementById('panelAccounts').classList.add('active');
-  document.getElementById('panelTodos').classList.remove('active');
+document.querySelectorAll('#tabbar .tab-btn').forEach(btn=>{
+  btn.addEventListener('click', ()=>{
+    document.querySelectorAll('#tabbar .tab-btn').forEach(b=>b.classList.remove('active'));
+    document.querySelectorAll('.tab-panel').forEach(p=>p.classList.remove('active'));
+    btn.classList.add('active');
+    document.getElementById(btn.getAttribute('data-panel')).classList.add('active');
+  });
 });
 
 async function bootApp(){
@@ -594,6 +1044,10 @@ async function bootApp(){
   }
   await refresh(false);
   await refreshAccounts();
+  try{ allCategories = await fetchCategories(); } catch(e){ /* form will just show no categories */ }
+  await refreshBudget();
+  await refreshAssets();
+  await refreshHealth();
 }
 
 function showApp(){
